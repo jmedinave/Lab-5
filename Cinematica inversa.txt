@@ -1,0 +1,501 @@
+import rospy
+from roboticstoolbox import DHRobot, DHLink
+from spatialmath import SE3
+from std_msgs.msg import String
+from sensor_msgs.msg import JointState
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+import tkinter as tk
+from tkinter import ttk, messagebox, font
+from PIL import Image, ImageTk
+import numpy as np
+from roboticstoolbox import Link, SerialLink
+import matplotlib.pyplot as plt
+
+
+# crear un objeto JointTrajectory, que envia los valores articulares
+state = JointTrajectory()
+
+# configurar los nombres de las articulaciones
+state.joint_names = ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5"]
+
+#Si fue iniciado con seguridad, se genera el nodo joint_publisher que envia coordenadas y se entra en el bucle
+
+def joint_publisher():
+    pub = rospy.Publisher('/joint_trajectory', JointTrajectory, queue_size=0)
+    rospy.init_node('joint_publisher', anonymous=False)
+    global marcador
+    marcador = 0
+
+    def calcular_configuracion(T_deseada):
+        # Definir los parámetros DH del robot
+        l = [4.42, 10.3, 10.3, 8.96]
+        offset = [0, np.pi/2, 0, 0]
+        link1 = DHLink(alpha=np.pi/2, a=l[0], theta=0, d=5.4, offset=offset[0], joint_type='R')
+        link2 = DHLink(alpha=0, a=l[1], theta=0, d=0, offset=offset[1], joint_type='R')
+        link3 = DHLink(alpha=0, a=l[2], theta=0, d=0, offset=offset[2], joint_type='R')
+        #link4 = DHLink(alpha=np.pi/2, a=l[3], theta=0, d=0, offset=offset[3], joint_type='R')
+
+        # Definir un objeto robot con los parámetros DH
+        robot = DHRobot([link1, link2, link3]) #link 4 se toma como muñeca, por ende se trata de forma fija con offset
+
+        # Calcular la cinemática inversa para la posición deseada
+        q_sol = robot.ikine_LMS(T_deseada)
+
+        return q_sol.q
+    
+    def detener_brazo():
+        # Limpiar la lista de puntos
+        state.points.clear()    
+
+    # Matriz de transformación homogénea de la forma [R | p; 0 0 0 1] en coordenadas de mundo
+    def vector_inverso(x,y,z,roll,pitch,yaw):
+        T_deseada = SE3.Tx(x) * SE3.Ty(y) * SE3.Tz(z) * SE3.Rx(roll) * SE3.Ry(pitch) * SE3.Rz(yaw)
+        q = calcular_configuracion(T_deseada)
+        return q
+
+    def move_robot(j1, j2, j3, j4, j5):
+        # configurar el tiempo de estampa, asegura igual tiempo entre robot y pc para un correcto movimiento
+        state.header.stamp = rospy.Time.now()
+
+        # configurar la posición de las articulaciones
+        point = JointTrajectoryPoint()  #Crea un punto
+        point.positions = [j1, j2, j3, j4, j5]  #Da las posiciones del punto
+
+        # configurar la duración del movimiento
+        point.time_from_start = rospy.Duration(0.5) #originalmente tenia 1
+
+        # agregar el punto a la lista de puntos, se pueden añadir varios antes de generar la rutina de movimiento
+        state.points.append(point)
+
+        # publicar el mensaje, de manera que el robot recorre el conjunto de puntos
+        pub.publish(state)
+        
+        # limpiar la lista de puntos
+        state.points.clear()
+
+        # esperar 5 segundos
+        rospy.sleep(5)        
+
+    def mv(j1, j2, j3, j4, j5):
+        # configurar el tiempo de estampa, asegura igual tiempo entre robot y pc para un correcto movimiento
+        state.header.stamp = rospy.Time.now()
+
+        # configurar la posición de las articulaciones
+        point = JointTrajectoryPoint()  #Crea un punto
+        point.positions = [j1, j2, j3, j4, j5]  #Da las posiciones del punto
+
+        # configurar la duración del movimiento
+        point.time_from_start = rospy.Duration(0.2) #originalmente tenia 1
+
+        # agregar el punto a la lista de puntos, se pueden añadir varios antes de generar la rutina de movimiento
+        state.points.append(point)     
+
+        # publicar el mensaje, de manera que el robot recorre el conjunto de puntos
+        pub.publish(state)
+        
+        # esperar 5 segundos
+        rospy.sleep(1)        
+
+        # limpiar la lista de puntos
+        state.points.clear()
+
+
+    def curva():
+        n_points = 20
+        theta = np.linspace(0, np.pi, n_points)
+        cx = 15
+        cy = -5
+        r = 3
+        points = []
+        for angle in theta:
+            x = cx + r * np.cos(angle)
+            y = cy + r * np.sin(angle)
+            x = vector_inverso(x,y,0.5,0,0,0)
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+
+
+
+    #El valor asignado a los jx corresponde al angulo de las articulaciones, para goal position equivale a 511
+    #Trabajar en z 4 al escribir
+
+    def pose1(): 
+        global marcador        
+        if marcador == 0:
+            messagebox.showinfo(message="Iniciando recogida", title = "Recoger marcador")        
+        #home
+            move_robot(0,0,0,0,0)
+        #marcador
+            x = vector_inverso(10,-20,14,0,0,0)
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),0)
+            x = vector_inverso(10,-20,4,0,0,0)
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),0)
+        #cerrar gripper
+            x = vector_inverso(10,-20,4,0,0,0)
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3)) 
+            x = vector_inverso(10,-20,14,0,0,0)
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+
+            x = vector_inverso(20,-2,14,0,0,0) #Esquina 1
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))        
+            marcador = 1
+            messagebox.showinfo(message="Rutina terminada", title = "Recoger marcador")       
+            herramienta.config(text="Con marcador")    
+            posicion.config(text="Posicion de escritura")
+            tiempo.config(text="La rutina ha tomado 35 s")
+        else:
+            messagebox.showinfo(message="Ya se tiene el marcador", title = "Error")      
+
+
+    #NO poner valores por debajo de 7 en x positivo, x va hacia afuera del robot y y hacia la izquierda    
+    #En 1 r va de 7 a 20 (180°) y en 2 r va de 13 a 30 (90°)
+    #El offset de q4 a la mitad del efector es de 9,5 y el marcador es de 13
+    #en 1 se suman los offset en z, en 2 se suma el del marcador en z y el del link 4 en x se resta
+    def pose2():   
+        global marcador          
+        if marcador == 1:
+            messagebox.showinfo(message="Soltando marcador", title = "Dejar marcador")       
+            x = vector_inverso(20,-2,14,0,0,0) #Esquina 1
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+        #marcador
+            x = vector_inverso(10,-19,14,0,0,0)
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(10,-19,4,0,0,0)
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+        #abrir gripper
+            x = vector_inverso(10,-19,4,0,0,0)
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),0) 
+            x = vector_inverso(10,-19,14,0,0,0)
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),0) 
+        #home 
+            move_robot(0,0,0,0,0)     
+            marcador = 0
+            messagebox.showinfo(message="Rutina terminada", title = "Dejar marcador")                   
+            herramienta.config(text="Sin marcador")    
+            posicion.config(text="Posicion de home")          
+            tiempo.config(text="La rutina ha tomado 35 s")
+        else:
+            messagebox.showinfo(message="No hay marcador", title = "Error")            
+
+    #cuadrado
+    def pose3(): 
+        global marcador
+        messagebox.showinfo(message="Dibujando cuadrado", title = "Cuadrado")        
+        if marcador == 1:
+            x = vector_inverso(20,-2,14,0,0,0)
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(20,-2,0.5,0,0,0)
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(20,2,0.5,0,0,0)
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(16,2,0.5,0,0,0)
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(16,-2,0.5,0,0,0)
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(20,-2,0.5,0,0,0)
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3)) 
+            x = vector_inverso(20,-2,14,0,0,0)
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            messagebox.showinfo(message="Rutina terminada", title = "Cuadrado")        
+            tiempo.config(text="La rutina ha tomado 40 s")   
+        else:
+            messagebox.showinfo(message="No hay marcador", title = "Error")                                                  
+       
+    #triangulo girado
+    def pose4(): 
+        global marcador        
+        if marcador == 1:
+            messagebox.showinfo(message="Dibujando triangulo", title = "Triangulo")          
+            xoff = 9
+            x = vector_inverso(20-xoff,-10,14,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))    
+            x = vector_inverso(20-xoff,-10,0.5,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))     
+            x = vector_inverso(23.54-xoff,-6.46,0,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))    
+            x = vector_inverso(24.83-xoff,-11.29,0.5,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))     
+            x = vector_inverso(20-xoff,-10,0.5,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))    
+            x = vector_inverso(20-xoff,-10,14,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            tiempo.config(text="La rutina ha tomado 35 s")
+            messagebox.showinfo(message="Rutina terminada", title = "Triangulo")        
+        else:
+            messagebox.showinfo(message="No hay marcador", title = "Error")                      
+
+    #Iniciales
+    def pose5(): 
+        global marcador    
+        if marcador == 1:
+            xoff = 9
+    #Entrada J-
+            messagebox.showinfo(message="Dibujando iniciales", title = "Iniciales")        
+            x = vector_inverso(25-xoff,10,14,0,0,0)
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(25-xoff,10,0,0,0,0)
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(25-xoff,7,0,0,0,0)
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(24-xoff,7,0,0,0,0)
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(24-xoff,8,0,0,0,0)
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))        
+            x = vector_inverso(20-xoff,8,0,0,0,0)
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))      
+            x = vector_inverso(20-xoff,10,0,0,0,0)
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3)) 
+            x = vector_inverso(21-xoff,10,0,0,0,0)
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3)) 
+            x = vector_inverso(21-xoff,9,0,0,0,0)
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3)) 
+            x = vector_inverso(24-xoff,9,0,0,0,0)
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3)) 
+            x = vector_inverso(24-xoff,10,0,0,0,0)
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+    #Termina 
+            x = vector_inverso(25-xoff,10,0,0,0,0) 
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+    #Salida J
+            x = vector_inverso(25-xoff,10,14,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+    #Entrada S
+            x = vector_inverso(25-xoff,6,14,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+    #Inicio
+            x = vector_inverso(25-xoff,6,0,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(25-xoff,3,0,0,0,0) 
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(24-xoff,3,0,0,0,0) 
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(24-xoff,5,0,0,0,0) 
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(23-xoff,5,0,0,0,0) 
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(23-xoff,3,0,0,0,0) 
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(20-xoff,3,0,0,0,0) 
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(20-xoff,6,0,0,0,0) 
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(21-xoff,6,0,0,0,0) 
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(21-xoff,4,0,0,0,0) 
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(22-xoff,4,0,0,0,0) 
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(22-xoff,6,0,0,0,0) 
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+    #Fin
+            x = vector_inverso(25-xoff,6,0,0,0,0) 
+            mv(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+    #Salida S
+            x = vector_inverso(22-xoff,6,14,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            messagebox.showinfo(message="Rutina terminada", title = "Iniciales")        
+            tiempo.config(text="La rutina ha tomado 60 s")   
+        else:
+            messagebox.showinfo(message="No hay marcador", title = "Error")               
+
+
+#Circulo
+    def pose6():
+        global marcador
+        if marcador == 1:
+            messagebox.showinfo(message="Dibujando figura personalizada", title = "Figura")        
+            x = vector_inverso(18,-5,14,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            x = vector_inverso(18,-5,1,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))        
+            curva()
+            x = vector_inverso(18,-5,0.5,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))  
+            x = vector_inverso(18,-5,14,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            messagebox.showinfo(message="Rutina terminada", title = "Figura")        
+            tiempo.config(text="La rutina ha tomado 53 s")   
+        else:
+            messagebox.showinfo(message="No hay marcador", title = "Error")                       
+
+#Arco
+    def pose7(): 
+        global marcador
+        if marcador == 1:
+            messagebox.showinfo(message="Dibujando espacio de trabajo", title = "Arcos")        
+            xoff = 9
+            x = vector_inverso(3,-14,14,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))        
+            x = vector_inverso(3,-14,0,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))         
+            x = vector_inverso(10,0,-0.5,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))         
+            x = vector_inverso(3,14,0,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))         
+            x = vector_inverso(3,14,14,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))                                                  
+            x = vector_inverso(0,-19,14,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))        
+            x = vector_inverso(2,-28,14,0,0,0)         
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))        
+            x = vector_inverso(2,-28,4,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))         
+            x = vector_inverso(28,0,3,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))         
+            x = vector_inverso(2,28,3,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))         
+            x = vector_inverso(2,28,14,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3)) 
+            x = vector_inverso(20,0,14,0,0,0) 
+            move_robot(x[0],x[1],x[2],((-np.pi/2)-x[2]-x[1]),(2*np.pi/3))
+            messagebox.showinfo(message="Rutina terminada", title = "Arcos")        
+            tiempo.config(text="La rutina ha tomado 60 s")
+        else:
+            messagebox.showinfo(message="No hay marcador", title = "Error")        
+
+
+    def pose8():
+        pose1()
+        pose3()
+        pose4()
+        pose5()
+        pose6()
+        pose7()
+        pose2()
+
+    def pose9():   
+        detener_brazo()  
+        tiempo.config(text="No se puede determinar tiempo")
+
+    def pose10():
+        messagebox.showinfo(message="Dirigiendose a home", title = "Home")        
+        move_robot(0,0,0,0,(2*np.pi/3))
+        posicion.config(text= "Posicion de home")      
+        tiempo.config(text="La rutina ha tomado 6 s")
+        messagebox.showinfo(message="Rutina terminada", title = "Home")  
+
+    #Abre la gestion de tkinter
+    root = tk.Tk()
+
+    root.config(width=1400, height=1100)
+    root.title("Poses")
+    boton1 = ttk.Button(text="Tomar Marcador", command=pose1)
+    boton1.place(x=50, y=50)
+    boton2 = ttk.Button(text="Dejar Marcador", command=pose2)
+    boton2.place(x=50, y=150)
+    boton3 = ttk.Button(text="Cuadrado", command=pose3)
+    boton3.place(x=350, y=50)
+    boton4 = ttk.Button(text="Triangulo", command=pose4)
+    boton4.place(x=650, y=50)
+    boton5 = ttk.Button(text="Iniciales", command=pose5)
+    boton5.place(x=950, y=50)
+    boton6 = ttk.Button(text="Curva", command=pose6)
+    boton6.place(x=350, y=400) 
+    boton7 = ttk.Button(text="Arco", command=pose7)
+    boton7.place(x=650, y=400) 
+    boton8 = ttk.Button(text="Rutina Completa", command=pose8)
+    boton8.place(x=50, y=250)     
+    boton9 = ttk.Button(text="Detener", command=pose9)
+    boton9.place(x=50, y=350)   
+    boton10 = ttk.Button(text="Home", command=pose10)
+    boton10.place(x=50, y=450)                 
+
+
+
+    img1 = Image.open("/home/andrago/Descargas/Imagenes/cuadrado.png")
+    img1 = img1.resize((200, 200), Image.ANTIALIAS) # ajustar el tamaño
+    img1_tk = ImageTk.PhotoImage(img1)
+
+    img2 = Image.open("/home/andrago/Descargas/Imagenes/triangulo.png")
+    img2 = img2.resize((200, 200), Image.ANTIALIAS) # ajustar el tamaño
+    img2_tk = ImageTk.PhotoImage(img2)
+
+    img4 = Image.open("/home/andrago/Descargas/Imagenes/figura.png")
+    img4 = img4.resize((200, 200), Image.ANTIALIAS) # ajustar el tamaño
+    img4_tk = ImageTk.PhotoImage(img4)
+
+    img3 = Image.open("/home/andrago/Descargas/Imagenes/iniciales.png")
+    img3 = img3.resize((200, 200), Image.ANTIALIAS) # ajustar el tamaño
+    img3_tk = ImageTk.PhotoImage(img3)
+
+    img5 = Image.open("/home/andrago/Descargas/Imagenes/arcos.png")
+    img5 = img5.resize((200, 200), Image.ANTIALIAS) # ajustar el tamaño
+    img5_tk = ImageTk.PhotoImage(img5)
+
+    img6 = Image.open("/home/andrago/Descargas/Imagenes/logo.png")
+    img6 = img6.resize((400, 200), Image.ANTIALIAS) # ajustar el tamaño
+    img6_tk = ImageTk.PhotoImage(img6) 
+
+    img7 = Image.open("/home/andrago/Descargas/Imagenes/nombres.png")
+    img7 = img7.resize((500, 150), Image.ANTIALIAS) # ajustar el tamaño
+    img7_tk = ImageTk.PhotoImage(img7)     
+
+    # mostrar las imágenes en etiquetas de tkinter
+
+    canvas1 = tk.Canvas(root, width=300, height=300)
+    canvas1.pack()
+
+    canvas1.create_image(0, 0, anchor=tk.NW, image=img1_tk)
+    canvas1.place(x=300, y=100)
+
+    canvas2 = tk.Canvas(root, width=300, height=300)
+    canvas2.pack()
+
+    canvas2.create_image(0, 0, anchor=tk.NW, image=img2_tk)
+    canvas2.place(x=600, y=100)    
+
+    canvas3 = tk.Canvas(root, width=300, height=300)
+    canvas3.pack()
+
+    canvas3.create_image(0, 0, anchor=tk.NW, image=img3_tk)
+    canvas3.place(x=900, y=100)   
+
+    canvas4 = tk.Canvas(root, width=300, height=300)
+    canvas4.pack()
+
+    canvas4.create_image(0, 0, anchor=tk.NW, image=img4_tk)
+    canvas4.place(x=300, y=450)   
+
+    canvas5 = tk.Canvas(root, width=300, height=300)
+    canvas5.pack()
+
+    canvas5.create_image(0, 0, anchor=tk.NW, image=img5_tk)
+    canvas5.place(x=600, y=450)
+
+    canvas6 = tk.Canvas(root, width=400, height=200)
+    canvas6.pack()
+
+    canvas6.create_image(0, 0, anchor=tk.NW, image=img6_tk)
+    canvas6.place(x=700, y=800)     
+
+    canvas7 = tk.Canvas(root, width=500, height=150)
+    canvas7.pack()
+
+    canvas7.create_image(0, 0, anchor=tk.NW, image=img7_tk)
+    canvas7.place(x=50, y=830)     
+
+    # Crear etiqueta
+    herramienta = tk.Label(root, text="Sin herramienta", width=40)
+    herramienta.place(x=900, y=450)  # Posiciona la etiqueta
+    herramienta.config(font=("Arial", 15))
+
+    posicion = tk.Label(root, text="Posicion de home", width=40)
+    posicion.place(x=900, y=500)  # Posiciona la etiqueta
+    posicion.config(font=("Arial", 15))
+  
+
+    tiempo = tk.Label(root, text="No hay rutina anterior", width=40)
+    tiempo.place(x=900, y=550)  # Posiciona la etiqueta
+    tiempo.config(font=("Arial", 15))
+
+    root.mainloop()
+
+    #El nodo se queda esperando a recibir mensajes
+    while not rospy.is_shutdown():
+        rospy.spin()
+
+if __name__ == '__main__':
+    try:
+        joint_publisher()
+    except rospy.ROSInterruptException:
+        pass
+
