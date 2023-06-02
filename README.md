@@ -43,7 +43,17 @@ Para el soporte de la herramienta en la base del area de trabajo, se implemento 
 
 ### Interfaz HMI:
 
+### Análisis de precisión
 
+### Conclusiones
+
+* La presición y exactitud del robot Phantom X es baja debido a que los movimientos son muy bruscos, incluso bajando el delta entre cada punto intermedio de una trayectoria no podemos obtener una trayectoria muy exacta o precisa, esto además se propaga debido a que varios robots del laboratorio tienen algo de libertad de rotación incluso estando energizados debido a que no están bien ajustados a los soportes.
+
+* Una buena comprensión de la cinemática inversa nos permité hacer nuestra propia implementación del control del movimiento del robot, lo cual fue fundamental para implementar la solución de nuestra alicación.
+
+*Ros, junto a modelos de cinemática inversa y directa, permite controlar los movimientos de un robot por medio de python y/o Matlab con suficiente precisión como para recorrer trayectorias complejas.
+
+*La precisión con la que el robot se comporte a comparación del comportamiento simulado ideal depende de factores físicos del robot, como la rigidez de sus eslabones, las fuerzas externas asociadas al proceso y la interfaz que lo controla (esto ultimo respecto al envió de valores de articulación discontinuo desde Matlab). Esta precisión determina la calidad con la que lleva a cabo su función, pues como se evidencio, la desviación entre trayectorias ideales y reales puede ser significativa.
 
 
 
