@@ -58,7 +58,7 @@ Para el soporte de la herramienta en la base del area de trabajo, se implemento 
 La precisión obtenida es bastante buena a los estandares esperados para estas aplicaciones, se obtuvo este resultado gracias a reducir la velocidad de avance del pincher.
 ![letras](https://github.com/jmedinave/Lab-5/blob/main/LETRAS%20COMPARADAS.jpg)
 ![figura](https://github.com/jmedinave/Lab-5/blob/main/FIGURA%20COMPARADA.jpg)
-![cuadrado](https://github.com/jmedinave/Lab-5/blob/main/LETRAS%20COMPARADAS.jpg)
+![cuadrado](https://github.com/jmedinave/Lab-5/blob/main/CUADRADO%20COMPARADO.jpg)
 ![arcos](https://github.com/jmedinave/Lab-5/blob/main/LETRAS%20COMPARADAS.jpg)
 
 ### Conclusiones
