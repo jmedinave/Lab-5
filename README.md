@@ -56,6 +56,8 @@ Para el soporte de la herramienta en la base del area de trabajo, se implemento 
 
 ### Análisis de precisión
 La precisión obtenida es bastante buena a los estandares esperados para estas aplicaciones, se obtuvo este resultado gracias a reducir la velocidad de avance del pincher.
+![letras](https://github.com/jmedinave/Lab-5/blob/main/LETRAS%20COMPARADAS.jpg)
+
 ### Conclusiones
 
 * La presición y exactitud del robot Phantom X es baja debido a que los movimientos son muy bruscos, incluso bajando el delta entre cada punto intermedio de una trayectoria no podemos obtener una trayectoria muy exacta o precisa, esto además se propaga debido a que varios robots del laboratorio tienen algo de libertad de rotación incluso estando energizados debido a que no están bien ajustados a los soportes.
