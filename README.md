@@ -28,7 +28,14 @@ Este repositorio expone el procedimiento para cumplir la guia de laboratorio #5 
     <li><strong>Descarga de la herramienta</strong>: el brazo se desplaza a la base porta herramienta, suelta el marcador y se ubica en una posici&oacute;n de Home.</li>
 </ul>
 <p>Adicionalmente, el programa debe contar con una interfaz Humano m&aacute;quina HMI.</p>
-
+### Parametros robot.
+Realizamos el diagrama cinemático para obtener la tabla de parametros 
+ 
+![D cinematico](https://github.com/jmedinave/Lab-4--Robotica/blob/main/diagrama.jpg)
+ 
+La tabla de parametros obtenida es igual a
+ 
+![T cinematico](https://github.com/jmedinave/Lab-4--Robotica/blob/main/tabla%20de%20parametros.jpg)
 ### Base porta Herramienta y marcador utlizado:
 
 Para el soporte de la herramienta en la base del area de trabajo, se implemento un soporte con la tapa del marcador utilizado a la mesa tal como muestra la siguiente imagen:
