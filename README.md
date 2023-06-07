@@ -84,7 +84,9 @@ Para este caso el error que se obtuvo es igual al 10.25%
 ![cuadrado](https://github.com/jmedinave/Lab-5/blob/main/CUADRADO%20COMPARADO.jpg)
 
 #### Arcos
+En general es el mejor trazado entre los que se hicieron, ya que se puede evidenciar que se logra continuidad y una buena homogeneidad, adicionalmente es el trazo que menos se distancia al esperado y por ende como las diferencias son las menores y la longitud la mas larga arroja el error mas pequeño.
 
+Para este caso el error que se obtuvo es igual al 3%
 
 ![arcos](https://github.com/jmedinave/Lab-5/blob/main/ARCOS%20COMPARADOS.jpg)
 
