@@ -56,7 +56,14 @@ Para el soporte de la herramienta en la base del area de trabajo, se implemento 
 
 ### Análisis de precisión
 La precisión obtenida es bastante buena a los estandares esperados para estas aplicaciones, se obtuvo este resultado gracias a reducir la velocidad de avance del pincher.
+La formula para medir el error sera, la razon entre el punto de la trayectoria mas separada a la trayectoria esperada (d_max) y la longitud mas larga de la figura esperada (L_max), finalmente lo multiplicamos por 100%.
+Error=(d_max/L_max)*100%
 ![letras](https://github.com/jmedinave/Lab-5/blob/main/LETRAS%20COMPARADAS.jpg)
+
+Es puede determinar que esta es la trayectoria que tiene mas puntos distantes a la trayectoria esperada, dado que hay mas cambios de dirección sucesivos.
+Se aprecia rectitud en la mayoría de los trazos, pero se ve afectada por la deflexión de nuevo. En los casos más severos, se ve una curva en vez de una recta.
+Hay homogeneidad en la intensidad y tipo de errores en la escritura de ambas letras.
+Para este caso el error que se obtuvo es igual al 15%
 ![figura](https://github.com/jmedinave/Lab-5/blob/main/FIGURA%20COMPARADA.jpg)
 ![cuadrado](https://github.com/jmedinave/Lab-5/blob/main/CUADRADO%20COMPARADO.jpg)
 ![arcos](https://github.com/jmedinave/Lab-5/blob/main/ARCOS%20COMPARADOS.jpg)
