@@ -64,17 +64,28 @@ Error=(d_max/L_max)*100%
 Es puede determinar que esta es la trayectoria que tiene mas puntos distantes a la trayectoria esperada, dado que hay mas cambios de dirección sucesivos.
 Se aprecia rectitud en la mayoría de los trazos, pero se ve afectada por la deflexión de nuevo. En los casos más severos, se ve una curva en vez de una recta.
 Hay homogeneidad en la intensidad y tipo de errores en la escritura de ambas letras.
+
 Para este caso el error que se obtuvo es igual al 15%
+
 ![letras](https://github.com/jmedinave/Lab-5/blob/main/LETRAS%20COMPARADAS.jpg)
 
 #### Figura libre
 En el trazado de esta figura se puede observar que es la que presenta mayor segmentación en sus trazos, pero en general los puntos distantes entre la trayectoria dibujada y la trayectoria esperada es baja. En terminos de homogeneidad se observan que los trazos continuos tienen las mismas condiciones.
+
 Para este caso el error que se obtuvo es igual al 8.14%
+
 ![figura](https://github.com/jmedinave/Lab-5/blob/main/FIGURA%20COMPARADA.jpg)
 
 #### Cuadrado
+En el trazado de esta figura se puede observar que los trazos son en casi toda la trayectoria continuos y con buena homogeneidad. Hay una desviación de la trayectoria que es el que genera el error de precisión comparada con la trayectoria esperada.
+
+Para este caso el error que se obtuvo es igual al 10.25%
+
 ![cuadrado](https://github.com/jmedinave/Lab-5/blob/main/CUADRADO%20COMPARADO.jpg)
+
 #### Arcos
+
+
 ![arcos](https://github.com/jmedinave/Lab-5/blob/main/ARCOS%20COMPARADOS.jpg)
 
 
